@@ -6,6 +6,7 @@ import co.com.sofka.calendar.repositories.ProgramRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,20 +22,6 @@ public class SchedulerService {
     @Autowired
     private ProgramRepository programRepository;
 
-    //TODO: deben retornar un flux de programDate Flux<ProgramDate>
-  /*  public List<ProgramDate> generateCalendar(String programId, LocalDate startDate) {
-        var endDate = new AtomicReference<>(LocalDate.from(startDate));
-        final AtomicInteger[] pivot = {new AtomicInteger()};
-        final int[] index = {0};
-        //TODO: debe pasarlo a reactivo, no puede trabaja elementos bloqueantes
-        //TODO: trabajar el map reactivo y no deben colectar
-        var program = programRepository.findById(programId).block();
-        return Optional.ofNullable(program)
-                .map(this::getDurationOf)
-                .orElseThrow(() -> new RuntimeException("El programa academnico no existe"))
-                .map(toProgramDate(startDate, endDate, pivot[0], index))
-                .collect(Collectors.toList());
-    } */
 
     public Flux<ProgramDate> generateCalendar(String programId, LocalDate startDate) {
         var endDate = new AtomicReference<>(LocalDate.from(startDate));
@@ -43,21 +30,13 @@ public class SchedulerService {
 
         //TODO: debe pasarlo a reactivo, no puede trabaja elementos bloqueantes
         //TODO: trabajar el map reactivo y no deben colectar
-        // var program = programRepository.findById(programId).block();
-        var program1 = programRepository.findById(programId);
+        var program = programRepository.findById(programId);
 
-        program1
-                .map(p->getDurationOf(p))
-                .map(p->toProgramDate(startDate, endDate, pivot[0], index));
-
-
-    /*
-        return Optional.ofNullable(program)
-                .map(this::getDurationOf)
-                .orElseThrow(() -> new RuntimeException("El programa academnico no existe"))
+        return program
+                .flatMapMany(programa -> Flux.fromStream(getDurationOf(programa)))
                 .map(toProgramDate(startDate, endDate, pivot[0], index))
-                .collect(Collectors.toList());*/
-        return null;
+                .switchIfEmpty(Mono.error(new RuntimeException("Objeto Vacio")));
+
     }
 
     //No tocar
